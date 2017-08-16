@@ -1,6 +1,13 @@
 from datetime import datetime, timedelta
-from sh import jrnl
 from pathlib import Path
+
+from sh import jrnl
+
+# geeknote
+# pocket
+# numbers
+# items added
+# items done
 
 
 def _todo():
@@ -40,20 +47,9 @@ def display_report(display_func=None):
     if display_func is None:
         Exception("Need to pass display function like `print` or `click.echo`")
 
-    def display(report_gen, header):
-        display_func(header)
-        display_func(report_gen())
 
-    reporters = (
-        (_todo, '##### TODO #####'),
-        (_writing, '##### WRITING #####'),
-        (_jrnl, '##### JRNL #####'),
-    )
-    for report_gen, header in reporters:
-        display(report_gen, header) if report_gen() else ""
-
-    # geeknote
-    # pocket
-    # numbers
-    # items added
-    # items done
+REPORTERS = (
+    (_todo, '##### TODO #####'),
+    (_writing, '##### WRITING #####'),
+    (_jrnl, '##### JRNL #####'),
+)
