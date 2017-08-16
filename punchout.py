@@ -1,11 +1,13 @@
 import random
 from subprocess import run, PIPE
 from pathlib import Path
+from datetime import date
 
 import click
+import requests
 from sh import dark_mode
 
-import bye
+import wiki
 import report
 
 
@@ -22,6 +24,19 @@ def wallpaper_change_scpt():
     return f"""tell application "Finder" to set desktop picture to "{random_wallpaper_path}" as POSIX file"""
 
 
+def display_report(report_gen, header):
+    click.echo(header)
+    click.echo(report_gen())
+
+
+def get_page():
+    # the feature of the day
+    wiki_tfa = "https://en.wikipedia.org/api/rest_v1/feed/featured/{:%Y/%m/%d}"
+    wiki_page = "https://en.wikipedia.org/?curid={}"
+    today = date.today()
+    return (requests.get(wiki_tfa.format(today), wiki_page), wiki_page)
+
+
 @click.command()
 def cli():
     click.echo("punchout!")
@@ -34,10 +49,8 @@ def cli():
         stdout=PIPE,
         stderr=PIPE)
 
-    bye.bye_message()
-
-    def display_report(report_gen, header):
-        click.echo(header)
-        click.echo(report_gen())
     for report_gen, header in report.REPORTERS:
         display_report(report_gen, header) if report_gen() else ""
+
+    click.echo("Sleep tight 😴 ")
+    click.echo(wiki.get_wiki(*get_page()))
