@@ -1,7 +1,8 @@
 import random
 from subprocess import run, PIPE
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime
+from functools import partial
 
 import click
 import requests
@@ -38,7 +39,10 @@ def get_page():
 
 
 @click.command()
-def cli():
+@click.option('--sdate', default=datetime.strftime(datetime.now(), "%Y-%m-%d"), help='Start date for raport')
+def cli(sdate):
+    sdate = datetime.strptime(sdate, "%Y-%m-%d")
+    click.echo("\n")
     click.echo("punchout!")
 
     switch_to_dark_mode()
@@ -50,7 +54,8 @@ def cli():
         stderr=PIPE)
 
     for report_gen, header in report.REPORTERS:
-        display_report(report_gen, header) if report_gen() else ""
+        display_report(partial(report_gen, sdate), header) if report_gen(sdate) else ""
 
     click.echo("Sleep tight 😴 ")
     click.echo(wiki.get_wiki(*get_page()))
+    click.echo("\n")
