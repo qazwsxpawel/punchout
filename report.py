@@ -3,13 +3,6 @@ from pathlib import Path
 
 from sh import jrnl
 
-# TODO: # pomodoros
-# TODO: # geeknote
-# TODO: # pocket
-# TODO: # numbers
-# TODO: # items added
-# TODO: # items done
-
 
 def _screen_time(start_date):
     counters_dir = Path(Path.home() / 'Dropbox' / 'time_tracking')
