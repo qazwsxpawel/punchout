@@ -13,12 +13,23 @@ from sh import jrnl
 
 def _screen_time(start_date):
     counters_dir = Path(Path.home() / 'Dropbox' / 'time_tracking')
-    day_file = 'day-{:%Y-%m-%d}.txt'.format(start_date)
-    current_counter = Path(counters_dir / day_file)
-    with open(current_counter) as c:
-        counter = c.read().strip()
-        hours = int(counter) // 60
-        mins = int(counter) % 60
+    # generate dates in the timerange from `start_date`
+    dates = [datetime.now()]
+    for i in range((datetime.now() - start_date).days):
+        dates.append(start_date + timedelta(days=i))
+
+    # count mins in the timerange
+    counter = 0
+    for d in dates:
+        day_file = 'day-{:%Y-%m-%d}.txt'.format(d)
+        current_counter = Path(counters_dir / day_file)
+        if not current_counter.exists():
+            continue
+        with open(current_counter) as c:
+            counter += int(c.read().strip())
+
+    hours = counter // 60
+    mins = counter % 60
     screen_time = f"Spent {hours}hours {mins}mins staring at the screen"
     return screen_time
 
@@ -53,7 +64,7 @@ def _writing(start_date):
 
 
 def _jrnl(start_date):
-    entries = jrnl('-on', start_date, '--short')
+    entries = jrnl('-from', start_date, '--short')
     return entries.strip()
 
 
