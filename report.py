@@ -53,7 +53,8 @@ def _writing(start_date):
 
 
 def _jrnl(start_date):
-    return jrnl('-on', start_date, '--short')
+    entries = jrnl('-on', start_date, '--short')
+    return entries.strip()
 
 
 def display_report(display_func=None):

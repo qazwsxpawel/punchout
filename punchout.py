@@ -42,7 +42,6 @@ def get_page():
 @click.option('--sdate', default=datetime.strftime(datetime.now(), "%Y-%m-%d"), help='Start date for raport')
 def cli(sdate):
     sdate = datetime.strptime(sdate, "%Y-%m-%d")
-    click.echo("\n")
     click.echo("punchout!")
 
     switch_to_dark_mode()
@@ -58,4 +57,3 @@ def cli(sdate):
 
     click.echo("Sleep tight 😴 ")
     click.echo(wiki.get_wiki(*get_page()))
-    click.echo("\n")
