@@ -1,3 +1,4 @@
+import sys
 import random
 from subprocess import run, PIPE
 from pathlib import Path
@@ -12,10 +13,6 @@ import wiki
 import report
 
 
-def switch_to_dark_mode():
-    dark_mode()
-
-
 def wallpaper_change_scpt():
     wallpaper_dir = Path(Path.home() / 'Documents/wallpapers')
     pngs = wallpaper_dir.glob('*.png')
@@ -23,6 +20,13 @@ def wallpaper_change_scpt():
     wallpapers = list(pngs) + list(jpgs)
     random_wallpaper_path = random.choice(wallpapers)
     return f"""tell application "Finder" to set desktop picture to "{random_wallpaper_path}" as POSIX file"""
+
+
+def change_wallpaper():
+    run(['osascript', '-e', wallpaper_change_scpt()],
+        stdin=PIPE,
+        stdout=PIPE,
+        stderr=PIPE)
 
 
 def display_report(report_gen, header):
@@ -38,22 +42,51 @@ def get_page():
     return (requests.get(wiki_tfa.format(today), wiki_page), wiki_page)
 
 
-@click.command()
+def _parse_date(sdate):
+    delims = ['/', '.', '-']
+    ymd = "%Y{delim}%m{delim}%d"
+    dmy = "%d{delim}%m{delim}%Y"
+    fmts = [*[ymd.format(delim=d) for d in delims], *[dmy.format(delim=d) for d in delims]]
+    success = False
+    for _fmt in fmts:
+        try:
+            sdate = datetime.strptime(sdate, _fmt)
+            success = True
+            break
+        except ValueError as e:
+            pass
+    if not success:
+        click.echo("Wrong date format, should be year-month-day")
+        sys.exit(2)
+    return sdate
+
+
+@click.group(invoke_without_command=True)
 @click.option('--sdate', default=datetime.strftime(datetime.now(), "%Y-%m-%d"), help='Start date for raport')
-def cli(sdate):
-    sdate = datetime.strptime(sdate, "%Y-%m-%d")
-    click.echo("punchout!")
+@click.pass_context
+def cli(ctx, sdate):
+    if ctx.invoked_subcommand is None:
+        click.echo('I was invoked without subcommand')
+        sdate = _parse_date(sdate)
+        click.echo("punchout!")
 
-    switch_to_dark_mode()
-    click.echo("nighty night")
+        dark_mode()
+        click.echo("nighty night")
 
-    run(['osascript', '-e', wallpaper_change_scpt()],
-        stdin=PIPE,
-        stdout=PIPE,
-        stderr=PIPE)
+        change_wallpaper()
 
-    for report_gen, header in report.REPORTERS:
-        display_report(partial(report_gen, sdate), header) if report_gen(sdate) else ""
+        for report_gen, header in report.REPORTERS:
+            display_report(partial(report_gen, sdate), header) if report_gen(sdate) else ""
 
-    click.echo("Sleep tight 😴 ")
-    click.echo(wiki.get_wiki(*get_page()))
+        click.echo("Sleep tight 😴 ")
+        click.echo(wiki.get_tfa(*get_page()))
+    else:
+        ctx.ensure_object(dict)
+        ctx.obj['sdate'] = sdate
+        click.echo('I am about to invoke %s' % ctx.invoked_subcommand)
+
+
+@cli.command()
+@click.pass_context
+def stats(ctx):
+    click.echo(f"Here are some stats from {ctx.obj['sdate']}:\n")

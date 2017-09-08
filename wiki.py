@@ -7,7 +7,7 @@ def _style_wiki(title, url):
     return ": ".join([styled_text, styled_url])
 
 
-def get_wiki(r, wiki_page):
+def get_tfa(r, wiki_page):
     page_id = r.json()["tfa"]["pageid"]
     title = r.json()["tfa"]["normalizedtitle"]
     url = wiki_page.format(page_id)
