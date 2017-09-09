@@ -93,6 +93,9 @@ def get_day_summary(sdate):
 @click.pass_context
 def stats(ctx):
     click.echo("### STATS ###")
-    # week start by default
-    start_date = ctx.obj['sdate'] - timedelta(days=ctx.obj['sdate'].weekday())
+    # give a week start by default (if no other start date given)
+    start_date = ctx.obj['sdate']
+    if start_date == datetime.now():
+        start_date = ctx.obj['sdate'] - timedelta(days=start_date.weekday())
+
     _gen_report_display(start_date, report.STAT_GENS)
