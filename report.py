@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from sh import jrnl
+from sh import jrnl, git
 
 
 def display_report(display_func=None):
@@ -61,18 +61,36 @@ def _writing(start_date):
         mod_date = datetime.fromtimestamp(mtime)
         return start_date - mod_date < timedelta(hours=24)
 
-    def ignored(f):
-        ignore_rules = [f.name.startswith('.'), ]
-        return any(ignore_rules)
-
     writing = Path(Path.home() / 'Dropbox/writing')
-    modified_files = [f for f in writing.iterdir() if modified_fromdate(f) and not ignored(f)]
+    modified_files = [f for f in writing.iterdir() if modified_fromdate(f) and not _ignored_files(f)]
     return "\n".join(map(lambda x: getattr(x, 'name'), modified_files))
 
 
 def _jrnl(start_date):
     entries = jrnl('-from', start_date, '--short')
     return entries.strip()
+
+
+def _git(start_date):
+    subheader_fmt = "--- {dirname} ---"
+    dirs = Path(Path.home() / 'Projects').iterdir()
+    projects = []
+    for d in dirs:
+        if _ignored_files(d):
+            continue
+        dot_git = Path(d / '.git')
+        if not dot_git.exists():
+            continue
+        git_output = git(
+            f'--git-dir={Path(d.absolute()/".git")}',
+            'log',
+            '--pretty=format:"%C(yellow)%h%Cred%d\\ %Creset%s%Cblue\\ [%cn]"',
+            '--decorate',
+            '--graph',
+            '--since',
+            start_date)
+        projects.append((subheader_fmt.format(dirname=d.name), git_output))
+    return projects
 
 
 def _all_dates_from(start_date):
@@ -83,14 +101,27 @@ def _all_dates_from(start_date):
     return dates
 
 
+def _ignored_files(f):
+    ignore_rules = [f.name.startswith('.'), ]
+    return any(ignore_rules)
+
+
 def _fmt_screen_time(sdate):
     return "Spent {hours}hours {mins}mins staring at the screen".format(**_screen_time(sdate))
+
+
+def _fmt_git(sdate):
+    git_out = []
+    for d, o in _git(sdate):
+        git_out.append("Project {}:\n {}".format(d, "\n".join(o)))
+    return "\n".join(git_out)
 
 
 REPORTERS = (
     (_todo, '##### TODO #####'),
     (_writing, '##### WRITING #####'),
     (_jrnl, '##### JRNL #####'),
+    (_fmt_git, '##### GIT #####'),
     (_fmt_screen_time, '##### TIME #####'),
 )
 
