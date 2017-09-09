@@ -2,7 +2,7 @@ import sys
 import random
 from subprocess import run, PIPE
 from pathlib import Path
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import partial
 
 import click
@@ -65,28 +65,34 @@ def _parse_date(sdate):
 @click.option('--sdate', default=datetime.strftime(datetime.now(), "%Y-%m-%d"), help='Start date for raport')
 @click.pass_context
 def cli(ctx, sdate):
+    sdate = _parse_date(sdate)
     if ctx.invoked_subcommand is None:
-        click.echo('I was invoked without subcommand')
-        sdate = _parse_date(sdate)
-        click.echo("punchout!")
-
-        dark_mode()
-        click.echo("nighty night")
-
-        change_wallpaper()
-
-        for report_gen, header in report.REPORTERS:
-            display_report(partial(report_gen, sdate), header) if report_gen(sdate) else ""
-
-        click.echo("Sleep tight 😴 ")
-        click.echo(wiki.get_tfa(*get_page()))
+        # run default command
+        get_day_summary(sdate)
     else:
         ctx.ensure_object(dict)
         ctx.obj['sdate'] = sdate
-        click.echo('I am about to invoke %s' % ctx.invoked_subcommand)
+
+
+def _gen_report_display(sdate, reporters):
+    for report_gen, header in reporters:
+        display_report(partial(report_gen, sdate), header) if report_gen(sdate) else ""
+
+
+def get_day_summary(sdate):
+    click.echo("punchout!")
+    click.echo("nighty night")
+    dark_mode()
+    change_wallpaper()
+    _gen_report_display(sdate, report.REPORTERS)
+    click.echo(wiki.get_tfa(*get_page()))
+    click.echo("Sleep tight 😴 ")
 
 
 @cli.command()
 @click.pass_context
 def stats(ctx):
-    click.echo(f"Here are some stats from {ctx.obj['sdate']}:\n")
+    click.echo("### STATS ###")
+    # week start by default
+    start_date = ctx.obj['sdate'] - timedelta(days=ctx.obj['sdate'].weekday())
+    _gen_report_display(start_date, report.STAT_GENS)

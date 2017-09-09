@@ -4,27 +4,44 @@ from pathlib import Path
 from sh import jrnl
 
 
-def _screen_time(start_date):
-    counters_dir = Path(Path.home() / 'Dropbox' / 'time_tracking')
-    # generate dates in the timerange from `start_date`
+def _dates_from(start_date):
+    """Generate dates in the timerange from `start_date`"""
     dates = [datetime.now()]
     for i in range((datetime.now() - start_date).days):
         dates.append(start_date + timedelta(days=i))
+    return dates
+
+
+def _screen_time(start_date):
+    counters_dir = Path(Path.home() / 'Dropbox' / 'time_tracking')
+    dates = _dates_from(start_date)
 
     # count mins in the timerange
-    counter = 0
+    day_times = []
+    days_count = 0
     for d in dates:
         day_file = 'day-{:%Y-%m-%d}.txt'.format(d)
         current_counter = Path(counters_dir / day_file)
         if not current_counter.exists():
             continue
         with open(current_counter) as c:
-            counter += int(c.read().strip())
+            days_count += 1
+            day_times.append(int(c.read().strip()))
 
+    counter = sum(day_times)
     hours = counter // 60
     mins = counter % 60
-    screen_time = f"Spent {hours}hours {mins}mins staring at the screen"
-    return screen_time
+    days_count
+    return {'hours': hours, 'mins': mins, 'days_count': days_count, 'day_times': day_times}
+
+
+def _screen_time_stats(start_date):
+    st = _screen_time(start_date)
+    avg = float(st['hours']) / st['days_count']
+    top = max(st['day_times']) / 60.0
+    bottom = min(st['day_times']) / 60.0
+    total = sum(st['day_times']) / 60.0
+    return {'total': total, 'avg': avg, 'top': top, 'bottom': bottom, 'start_date': start_date}
 
 
 def _todo(start_date):
@@ -70,5 +87,10 @@ REPORTERS = (
     (_todo, '##### TODO #####'),
     (_writing, '##### WRITING #####'),
     (_jrnl, '##### JRNL #####'),
-    (_screen_time, '##### TIME #####'),
+    (lambda sdate: "Spent {hours}hours {mins}mins staring at the screen".format(**_screen_time(sdate)), '##### TIME #####'),
+)
+
+
+STAT_GENS = (
+    (lambda sdate: "From: {start_date:%Y-%m-%d}--Total: {total:.3}, Avg.: {avg:.3}, Top: {top:.3}, Bottom: {bottom:.3}".format(**_screen_time_stats(sdate)), '##### TIME #####'),
 )
