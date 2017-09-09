@@ -4,17 +4,14 @@ from pathlib import Path
 from sh import jrnl
 
 
-def _dates_from(start_date):
-    """Generate dates in the timerange from `start_date`"""
-    dates = [datetime.now()]
-    for i in range((datetime.now() - start_date).days):
-        dates.append(start_date + timedelta(days=i))
-    return dates
+def display_report(display_func=None):
+    if display_func is None:
+        Exception("Need to pass display function like `print` or `click.echo`")
 
 
 def _screen_time(start_date):
     counters_dir = Path(Path.home() / 'Dropbox' / 'time_tracking')
-    dates = _dates_from(start_date)
+    dates = _all_dates_from(start_date)
 
     # count mins in the timerange
     day_times = []
@@ -47,13 +44,13 @@ def _screen_time_stats(start_date):
 def _todo(start_date):
     todo_path = Path(Path.home() / 'Dropbox/todo')
 
-    def was_done_today(line):
+    def done_in_time_period(line):
         when_added = datetime.strptime(line.split()[1], '%Y-%m-%d')
         return start_date - when_added < timedelta(hours=24)
 
     with open(todo_path / 'done.txt') as f:
         lines = f.readlines()
-        done_today = ["".join(l.strip()) for l in lines if was_done_today(l)]
+        done_today = ["".join(l.strip()) for l in lines if done_in_time_period(l)]
     return "\n".join(done_today)
 
 
@@ -78,16 +75,23 @@ def _jrnl(start_date):
     return entries.strip()
 
 
-def display_report(display_func=None):
-    if display_func is None:
-        Exception("Need to pass display function like `print` or `click.echo`")
+def _all_dates_from(start_date):
+    """Generate dates in the timerange from `start_date`"""
+    dates = [datetime.now()]
+    for i in range((datetime.now() - start_date).days):
+        dates.append(start_date + timedelta(days=i))
+    return dates
+
+
+def _fmt_screen_time(sdate):
+    return "Spent {hours}hours {mins}mins staring at the screen".format(**_screen_time(sdate))
 
 
 REPORTERS = (
     (_todo, '##### TODO #####'),
     (_writing, '##### WRITING #####'),
     (_jrnl, '##### JRNL #####'),
-    (lambda sdate: "Spent {hours}hours {mins}mins staring at the screen".format(**_screen_time(sdate)), '##### TIME #####'),
+    (_fmt_screen_time, '##### TIME #####'),
 )
 
 
